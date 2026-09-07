@@ -32,17 +32,28 @@ NASA_GISTEMP_CSV = (
 
 
 def load_gistemp(url: str = NASA_GISTEMP_CSV) -> pd.DataFrame:
-    """Scarica e formatta le anomalie mensili globali NASA GISTEMP.
+    """Scarica e normalizza le anomalie mensili globali NASA GISTEMP.
+
+    Il file CSV viene individuato a partire dalla riga di intestazione e
+    trasformato da formato con un mese per colonna a formato lungo.
+
+    Parameters
+    ----------
+    url : str, default NASA_GISTEMP_CSV
+        URL del file CSV NASA GISTEMP da scaricare.
 
     Returns
     -------
     pandas.DataFrame
-        Colonne:
-        - year: anno
-        - month_name: abbreviazione del mese
-        - month: indice del mese, 1--12
-        - anomaly: anomalia di temperatura globale, in °C
-        - date: data mensile
+        Serie temporale mensile ordinata per data, con le colonne `year`,
+        `month_name`, `month`, `anomaly` e `date`. I valori non numerici
+        dell'anomalia vengono esclusi.
+
+    Raises
+    ------
+    StopIteration
+        Se il contenuto scaricato non contiene una riga che inizia con
+        ``"Year"``.
     """
     raw = urllib.request.urlopen(url).read().decode(
         "utf-8",
@@ -82,7 +93,6 @@ def load_gistemp(url: str = NASA_GISTEMP_CSV) -> pd.DataFrame:
     }
 
     climate["month"] = climate["month_name"].map(month_map)
-
     climate["date"] = pd.to_datetime(
         {
             "year": climate["year"],
@@ -100,31 +110,34 @@ def make_features(
 ) -> pd.DataFrame:
     """Costruisce feature temporali, stagionali e autoregressive.
 
-    Il modello di base è:
+    Il trend è espresso in anni dall'inizio della serie, mentre la
+    stagionalità è codificata con seno e coseno del mese. Le prime righe,
+    prive di tutti i lag richiesti, vengono rimosse.
 
-        Y_t = f(X_t) + epsilon_t
+    Parameters
+    ----------
+    climate : pandas.DataFrame
+        DataFrame con le colonne `date`, `month` e `anomaly`.
+    n_lags : int, default 12
+        Numero di anomalie passate da aggiungere come feature autoregressive.
 
-    con:
-    - Y_t: anomalia termica mensile;
-    - X_t: trend temporale, ciclo stagionale e anomalie passate;
-    - epsilon_t: componente non spiegata dal modello.
+    Returns
+    -------
+    pandas.DataFrame
+        Copia del DataFrame con le colonne `t_years`, `sin_month`,
+        `cos_month` e `lag_1` fino a `lag_n_lags`.
+
+    Raises
+    ------
+    KeyError
+        Se mancano una o più colonne necessarie.
     """
+
     data = climate.copy()
-
-    data["t_years"] = (
-        data["date"] - data["date"].min()
-    ).dt.days / 365.2425
-
-    data["sin_month"] = np.sin(
-        2.0 * np.pi * data["month"] / 12.0
-    )
-
-    data["cos_month"] = np.cos(
-        2.0 * np.pi * data["month"] / 12.0
-    )
-
-    for lag in range(1, n_lags + 1):
-        data[f"lag_{lag}"] = data["anomaly"].shift(lag)
+    data["t_years"] = (data["date"] - data["date"].min()).dt.days / 365.2425
+    data["sin_month"] = np.sin(2.0 * np.pi * data["month"] / 12.0)
+    data["cos_month"] = np.cos(2.0 * np.pi * data["month"] / 12.0)
+    for lag in range(1, n_lags + 1): data[f"lag_{lag}"] = data["anomaly"].shift(lag)
 
     return data.dropna().reset_index(drop=True)
 
@@ -136,6 +149,27 @@ def fit_inference_model(
 
     Il coefficiente di ``t_years`` è una stima del trend, in °C/anno.
     I residui sono una stima empirica del termine epsilon.
+
+    Parameters
+    ----------
+    climate : pandas.DataFrame
+        DataFrame con la colonna `anomaly` e, direttamente o indirettamente,
+        le feature `t_years`, `sin_month` e `cos_month`.
+
+    Returns
+    -------
+    dict
+        Dizionario con il modello adattato (`model`), i dati usati (`data`),
+        i nomi delle feature (`features`), i valori stimati (`fitted`), i
+        residui (`residuals`), il trend in °C/anno e °C/secolo (`trend_degC_per_year`
+        e `trend_degC_per_century`), il coefficiente R² (`r2`) e la deviazione
+        standard dei residui (`residual_std_degC`).
+
+    Raises
+    ------
+    KeyError
+        Se mancano le colonne richieste per costruire le feature o per
+        adattare il modello.
     """
     needed_features = ["t_years", "sin_month", "cos_month"]
 
@@ -166,7 +200,26 @@ def chronological_split(
     climate: pd.DataFrame,
     train_fraction: float = 0.80,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Divide una serie temporale rispettando l'ordine cronologico."""
+    """Divide una serie temporale rispettando l'ordine cronologico.
+
+    Parameters
+    ----------
+    climate : pandas.DataFrame
+        DataFrame già ordinato temporalmente da suddividere.
+    train_fraction : float, default 0.80
+        Frazione iniziale delle osservazioni da assegnare al training set.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, pandas.DataFrame]
+        Coppia `(train, test)`: la porzione iniziale e quella finale della
+        serie, entrambe come copie indipendenti del DataFrame originale.
+
+    Raises
+    ------
+    ValueError
+        Se `train_fraction` non è strettamente compreso tra 0 e 1.
+    """
     if not 0.0 < train_fraction < 1.0:
         raise ValueError("train_fraction deve essere strettamente tra 0 e 1.")
 
@@ -187,6 +240,34 @@ def fit_prediction_models(
 
     Il test set è sempre la parte finale della serie: in questo modo il
     modello non usa osservazioni future per imparare il passato.
+
+    Parameters
+    ----------
+    climate : pandas.DataFrame
+        DataFrame con la colonna `anomaly` e, direttamente o indirettamente,
+        le feature temporali e i lag da 1 a 12.
+    train_fraction : float, default 0.80
+        Frazione iniziale della serie da usare per l'addestramento.
+    random_state : int, default 42
+        Seme per rendere riproducibile l'addestramento della random forest e
+        il calcolo della permutation importance.
+
+    Returns
+    -------
+    dict
+        Dizionario con i dati e le suddivisioni (`data`, `train`, `test`),
+        le feature (`features`), i modelli addestrati (`models`), le
+        previsioni (`predictions`), le metriche MAE, RMSE e R² (`metrics`) e
+        l'importanza delle feature della random forest
+        (`random_forest_importance`).
+
+    Raises
+    ------
+    ValueError
+        Se `train_fraction` non definisce una suddivisione valida o se i dati
+        non sono sufficienti per addestrare e valutare i modelli.
+    KeyError
+        Se mancano colonne necessarie per costruire le feature.
     """
     needed = {"t_years", "month", "lag_1", "lag_12"}
 
