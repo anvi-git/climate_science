@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistical Learning — Introduction | ML Notes</title>
+
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Source+Serif+4:ital@1&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:    #f7f4ec;
+    --ink:      #24211a;
+    --ink-soft: #56503f;
+    --rule:     #ddd4bd;
+    --gold:     #b8860f;
+    --gold-bg:  #f3e6bd;
+    --blue:     #2e4f8f;
+    --blue-bg:  #dfe6f5;
+    --green:    #3f6b46;
+    --green-bg: #e1ead ;
+    --green-bg2:#e3ecdd;
+    --rose:     #9c3b3b;
+    --width: 700px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 26px 26px;
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--blue); }
+
+  .page{
+    max-width: var(--width);
+    margin: 0 auto;
+    padding: 64px 24px 120px;
+  }
+
+  header.masthead{
+    margin-bottom: 56px;
+  }
+
+  .kicker{
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+
+  h1{
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: 2.15rem;
+    line-height: 1.15;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+
+  .dek{
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0;
+  }
+
+  nav.toc{
+    margin-top: 34px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  nav.toc ol{
+    list-style: none;
+    counter-reset: toc;
+    padding: 0;
+    margin: 0;
+    columns: 2;
+    column-gap: 28px;
+  }
+  nav.toc li{
+    counter-increment: toc;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    break-inside: avoid;
+  }
+  nav.toc li a{
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  nav.toc li a:hover{ border-bottom-color: var(--ink); }
+  nav.toc li::before{
+    content: counter(toc, decimal-leading-zero) "  ";
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  section{
+    margin-top: 58px;
+    scroll-margin-top: 20px;
+  }
+
+  section > h2{
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    margin: 0 0 6px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  section > .lede{
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 10px 0 20px;
+  }
+
+  h3{
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+    margin: 28px 0 10px;
+  }
+
+  p { margin: 0 0 14px; }
+
+  ul, ol.plain { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+
+  .callout{
+    border-radius: 3px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 0.96rem;
+  }
+  .callout .label{
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    display:block;
+    margin-bottom: 4px;
+  }
+  .callout.definition{ background: var(--gold-bg); border-left: 3px solid var(--gold); }
+  .callout.definition .label{ color: #8a6608; }
+  .callout.question{ background: var(--blue-bg); border-left: 3px solid var(--blue); }
+  .callout.question .label{ color: var(--blue); }
+  .callout.note{ background: var(--green-bg2); border-left: 3px solid var(--green); }
+  .callout.note .label{ color: var(--green); }
+
+  .two-col{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+  }
+  @media (max-width: 560px){
+    .two-col{ grid-template-columns: 1fr; }
+    nav.toc ol{ columns: 1; }
+  }
+
+  .card{
+    border: 1px solid var(--rule);
+    background: #fffdf7;
+    padding: 16px 18px;
+    border-radius: 3px;
+  }
+  .card h4{
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.92rem;
+    margin: 0 0 6px;
+  }
+  .card.pred h4{ color: var(--rose); }
+  .card.inf h4{ color: var(--blue); }
+  .card p:last-child{ margin-bottom: 0; }
+
+  .eq{
+    overflow-x: auto;
+    margin: 18px 0;
+    padding: 14px 4px;
+    text-align: center;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .eq.big { font-size: 0.92rem; }
+
+  .term-table{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.92rem;
+  }
+  .term-table th, .term-table td{
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .term-table th{
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    font-weight: 600;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .tradeoff{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 18px 0;
+  }
+  .tradeoff .card{ font-size: 0.92rem; }
+  .tradeoff .card .tag{
+    display:inline-block;
+    font-family:"Space Grotesk", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+  }
+  .tag.low{ background: var(--blue-bg); color: var(--blue); }
+  .tag.high{ background: #f5dede; color: var(--rose); }
+
+  .u-shape{
+    margin: 22px 0;
+    text-align: center;
+  }
+  .u-shape svg{ max-width: 100%; height: auto; }
+
+  .divider{
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 40px 0;
+  }
+
+  footer{
+    margin-top: 70px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="kicker">ML Notes · 01</div>
+    <h1>Statistical Learning: what we're trying to do</h1>
+    <p class="dek">Prediction vs. inference, how <span style="white-space:nowrap">f̂</span> gets estimated, and why every model's test error traces a U-shape.</p>
+
+    <nav class="toc">
+      <ol>
+        <li><a href="#ml">What is machine learning</a></li>
+        <li><a href="#accuracy">How good is a model?</a></li>
+        <li><a href="#tasks">Prediction vs. inference</a></li>
+        <li><a href="#estimating">Estimating f̂</a></li>
+        <li><a href="#error">Bias, variance, MSE</a></li>
+        <li><a href="#learning-types">Supervised vs. unsupervised</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <section id="ml">
+    <h2>What is machine learning</h2>
+    <p class="lede">To extract information and identify patterns — also called <strong>statistical learning</strong>.</p>
+
+    <p>We assume there's a true underlying relationship between an output and a set of inputs, plus some noise we can't account for:</p>
+
+    <div class="eq">\( Y = f(X_1, \dots, X_p) + \varepsilon \)</div>
+
+    <div class="callout question">
+      <span class="label">Why do we think this works?</span>
+      We assume <em>f</em> exists. The noise term is assumed well-behaved: <span style="white-space:nowrap">\(E(\varepsilon)=0\)</span> and <span style="white-space:nowrap">\(\mathrm{Var}(\varepsilon)=\sigma^2\)</span>.
+    </div>
+
+    <h3>Variables</h3>
+    <table class="term-table">
+      <tr><th>Symbol</th><th>Also called</th></tr>
+      <tr><td><em>X</em></td><td>input variables · covariates · predictors · features</td></tr>
+      <tr><td><em>Y</em></td><td>output · response · target · label</td></tr>
+    </table>
+  </section>
+
+  <section id="tasks">
+    <h2>Two tasks: prediction and inference</h2>
+
+    <div class="two-col">
+      <div class="card pred">
+        <h4>Prediction</h4>
+        <p>We have <em>X</em>, but not <em>Y</em>. Treating <em>f</em> as a <strong>black box</strong>, we just want a usable estimate:</p>
+        <div class="eq" style="border:none; padding:8px 0; margin:10px 0;">\( \hat{Y} = \hat{f}(X) \)</div>
+        <p>\(\hat{f}\) is our estimate of <em>f</em>; \(\hat{Y}\) is the resulting prediction for <em>Y</em>.</p>
+      </div>
+      <div class="card inf">
+        <h4>Inference</h4>
+        <p>Rather than getting good accuracy on \(\hat{Y}\), we want to <strong>understand the relationship</strong> between <em>X</em> and <em>Y</em> — here <em>f</em> must be an <strong>explainable model</strong>. Typical questions:</p>
+        <ul>
+          <li>Which predictors are important?</li>
+          <li>Which predictors have a positive / negative relation with <em>Y</em>?</li>
+          <li>Is the relation "simple" (e.g. linear) or not?</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="accuracy">
+    <h2>How accurate is Ŷ to Y?</h2>
+    <p>The error splits into two parts:</p>
+    <ul>
+      <li><strong>Reducible error</strong> — depends on the model \(\hat{f}\); in principle we can reduce this by improving the model.</li>
+      <li><strong>Irreducible error</strong> — depends on \(\varepsilon\), which we cannot measure.</li>
+    </ul>
+
+    <div class="eq big">
+      \( E(Y-\hat{Y})^2 = E[f(X)+\varepsilon-\hat{f}(X)]^2 = E\big[(f(X)-\hat{f}(X))^2\big] + \mathrm{Var}(\varepsilon) \)
+    </div>
+    <p style="text-align:center; margin-top:-8px; font-size:0.85rem; color:var(--ink-soft);">
+      <span style="color:#8a6608; font-weight:600;">reducible error</span> &nbsp;+&nbsp;
+      <span style="color:var(--green); font-weight:600;">irreducible error</span>
+    </p>
+
+    <div class="callout note">
+      <span class="label">Derivation note</span>
+      Expanding the square, the cross term \(2\,\varepsilon\,[f(X)-\hat f(X)]\) vanishes in expectation since \(E(\varepsilon)=0\), and \(E(\varepsilon^2)=\mathrm{Var}(\varepsilon)\).
+    </div>
+  </section>
+
+  <section id="estimating">
+    <h2>Estimation of f̂</h2>
+    <p>Given <em>m</em> data points — the <strong>training data</strong> — with predictors \(x_1,\dots,x_m\) and labels \(y_1,\dots,y_m\), we want to find \(\hat f\) such that \(Y \approx \hat f(X)\) for every pair \((X,Y)_{i=1}^{m}\).</p>
+
+    <div class="two-col">
+      <div class="card">
+        <h4>Parametric methods</h4>
+        <p>Assume a shape for <em>f</em> (the simplest: linear). The chosen model has \(p+1\) parameters \(\beta_0,\dots,\beta_p\); estimating <em>f</em> becomes finding those parameters — for a linear model, typically by <strong>least squares</strong>.</p>
+      </div>
+      <div class="card">
+        <h4>Non-parametric methods</h4>
+        <p>No assumption on the shape of <em>f</em>: it's estimated directly from the data points. Needs a lot of data, and brings the risk of <strong>overfitting</strong>.</p>
+      </div>
+    </div>
+
+    <div class="callout note">
+      <span class="label">Flexibility trade-off</span>
+      Jumping from estimating <em>f</em> to estimating \(\beta_0,\dots,\beta_p\) introduces a distance between \(\hat f\) and <em>f</em>. Reducing that distance means choosing more flexible models — i.e. more parameters — at the cost of adapting too closely to the data we happen to have.
+    </div>
+
+    <h3>Which approach to prefer?</h3>
+    <p>It depends on the question being asked:</p>
+    <ul>
+      <li><strong>Inference</strong> — a simple model (few parameters, simple shape) is preferable: it highlights the importance of individual predictors.</li>
+      <li><strong>Prediction</strong> — a good algorithm, very accurate, is preferable even if it leaves the model a "black box".</li>
+    </ul>
+  </section>
+
+  <section id="error">
+    <h2>How good is a model? MSE and the U-shape</h2>
+    <p>For regression, we use the <strong>Mean Squared Error</strong>:</p>
+    <div class="eq">\( \mathrm{MSE} = \dfrac{1}{m}\sum_{i=1}^{m}\big(y_i - \hat f(x_i)\big)^2 \)</div>
+    <p style="text-align:center; margin-top:-10px; font-size:0.85rem; color:var(--ink-soft);">we want MSE <strong>small</strong></p>
+
+    <p>Computed on the labeled subset used to fit the model — the <strong>training dataset</strong> — this gives the <strong>training MSE</strong>. But the goal is to fit well <em>not</em> the training data, rather future, unseen data points: we need the model for which the average of \((y_0-\hat f(x_0))^2\) over new points is smallest.</p>
+
+    <div class="tradeoff">
+      <div class="card">
+        <span class="tag low">low flexibility</span>
+        <p>Few degrees of freedom. Risk: <strong>underfitting</strong> — the model can't capture the true shape.</p>
+      </div>
+      <div class="card">
+        <span class="tag high">high flexibility</span>
+        <p>High degrees of freedom. Risk: <strong>overfitting</strong> — lowest training MSE, but it just replicates the training points and generalizes badly to new ones.</p>
+      </div>
+    </div>
+
+    <div class="u-shape">
+      <svg viewBox="0 0 620 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Test MSE forms a U-shape against flexibility, while training MSE decreases monotonically.">
+        <line x1="60" y1="250" x2="590" y2="250" stroke="#56503f" stroke-width="1.5"/>
+        <line x1="60" y1="250" x2="60" y2="30" stroke="#56503f" stroke-width="1.5"/>
+        <text x="325" y="285" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" fill="#56503f">Flexibility</text>
+        <text x="26" y="140" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" fill="#56503f" transform="rotate(-90 26 140)">Mean Squared Error</text>
+
+        <path d="M 90 60 C 250 150, 400 220, 570 240" fill="none" stroke="#2e4f8f" stroke-width="2.5"/>
+        <text x="520" y="255" font-family="Space Grotesk, sans-serif" font-size="12" fill="#2e4f8f">training MSE</text>
+
+        <path d="M 90 200 C 200 60, 320 55, 400 110 C 470 155, 520 200, 570 235" fill="none" stroke="#9c3b3b" stroke-width="2.5"/>
+        <text x="230" y="48" font-family="Space Grotesk, sans-serif" font-size="12" fill="#9c3b3b">test MSE</text>
+
+        <line x1="330" y1="30" x2="330" y2="250" stroke="#b8860f" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="340" y="42" font-family="Space Grotesk, sans-serif" font-size="11" fill="#8a6608">min test MSE</text>
+      </svg>
+    </div>
+
+    <div class="callout definition">
+      <span class="label">Fundamental property</span>
+      For every dataset, and for every statistical learning method, the test MSE curve is U-shaped as a function of flexibility. The point of minimum test MSE is not the point of minimum training MSE — the most flexible model minimizes training MSE (it fits every training point) but tends to have the highest test MSE.
+    </div>
+  </section>
+
+  <section id="learning-types">
+    <h2>Supervised vs. unsupervised learning</h2>
+    <table class="term-table">
+      <tr><th>Setting</th><th>What we have</th><th>What we can do</th></tr>
+      <tr>
+        <td><strong>Supervised</strong></td>
+        <td>A response \(y_i\) for each \(x_i\)</td>
+        <td>Look for the relation between <em>X</em> and <em>Y</em>, and perform prediction.</td>
+      </tr>
+      <tr>
+        <td><strong>Unsupervised</strong></td>
+        <td>The predictors, but no response \(y_i\)</td>
+        <td>Look for relations between different \(X_i, X_j\) — e.g. cluster analysis.</td>
+      </tr>
+    </table>
+    <p style="font-size:0.9rem; color:var(--ink-soft);">There's also <strong>semi-supervised learning</strong>, in between the two.</p>
+
+    <h3>Regression vs. classification</h3>
+    <ul>
+      <li><strong>Quantitative</strong> response → <strong>regression</strong> problem</li>
+      <li><strong>Qualitative</strong> response → <strong>classification</strong> problem</li>
+    </ul>
+    <p style="font-size:0.9rem; color:var(--ink-soft);">The focus is on the response; the nature of the predictors matters less.</p>
+  </section>
+
+  <footer>
+    <span>Statistical Learning — lecture notes, part 1</span>
+    <span><a href="index.html">↑ back to contents</a></span>
+  </footer>
+
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+      delimiters: [
+        {left: "\\(", right: "\\)", display: false},
+        {left: "\\[", right: "\\]", display: true}
+      ],
+      throwOnError: false
+    });
+  });
+</script>
+</body>
+</html>
